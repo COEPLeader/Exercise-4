@@ -1,4 +1,4 @@
----
+  ---
 title: 'Weekly Exercises #4'
 author: "Seth Buesing"
 output: 
@@ -245,37 +245,41 @@ Other than the notable exception of Washington DC (that little tiny yellow dot),
 
   8. In this exercise, you are going to create a single map of some of your favorite places! The end result will be one map that satisfies the criteria below.
 ```{r}
+fav_places <- tibble(
+  place = c("Home", "Macalester College", "Church", "Thomas's House", 
+            "Blair's House", "Lindwood Recreation Center", "Central High School", "Ramsey Middle School", "EXPO Elementary School", "Cadenza Music", "University of Minnesota East Bank", "Mississippi River Blvd/Jefferson Ave", "Ax-Man"),
+  long = c(-93.1632130682622, -93.1712321, -93.16503218194325, -93.12526680731808, -93.12127079579042, -93.13631499984636, -93.14826673723597, 
+          -93.1725207001496, -93.16258646788002, -93.16736408635319, 
+          -93.233861, -93.197707, -93.1695602261766),
+  lat = c(44.93063027435463, 44.9378965, 44.93793144940074, 44.9818313522325, 44.92995237419055, 44.93402239220738, 44.94929665918013,
+          44.94312748117745, 44.92536022429271, 44.94608502125374, 
+          44.975941, 44.930711, 44.95613549519296),
+  fav = c(TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)
+)
+
 stpaul_map_zoom <- get_stamenmap(
   bbox = c(left = floor(min(100*fav_places$long))/100, bottom = floor(100*min(fav_places$lat))/100, right = ceiling(max(100 * fav_places$long))/100, top = ceiling(max(100*fav_places$lat))/100), 
     maptype = "terrain",
     zoom = 12)
 
-fav_places <- tibble(
-  place = c("Home", "Macalester College", "Church", "Thomas's House", 
-            "Blair's House", "Lindwood Recreation Center", "Central High School", "Ramsey Middle School", "EXPO Elementary School", "Cadenza Music", "University of Minnesota East Bank", "Mississippi River Blvd/Jefferson Ave", "Ax-Man"),
-  long = c(-93.1632130682622, -93.1712321, -93.16503218194325, -93.12526680731808, -93.12127079579042, -93.13631499984636, -93.14826673723597, 
-          -93.1725207001496, -93.16308646788002, -93.16736408635319, 
-          -93.233861, -93.197707, -93.1695602261766),
-  lat = c(44.93063027435463, 44.9378965, 44.93793144940074, 44.9818313522325, 44.92995237419055, 44.93402239220738, 44.94929665918013,
-          44.94312748117745, 44.92736022429271, 44.94608502125374, 
-          44.975941, 44.930711, 44.95613549519296),
-  fav = c(TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)
-)
 
-pal <- colorFactor("plasma", domain = fav_places$fav, fav_places$fav)
+pal <- colorFactor("plasma", domain = fav_places$fav)
 
   leaflet(data = fav_places) %>% 
-    addTiles() %>% 
+    addProviderTiles(providers$Esri.WorldImagery) %>% 
     addCircleMarkers(lng = ~long[c(1,3,9,5,4,6,13,8,10,7,11,12,2)],
                lat = ~lat[c(1,3,9,5,4,6,13,8,10,7,11,12,2)],
                label = ~place[c(1,3,9,5,4,6,13,8,10,7,11,12,2)],
-               color = ~pal(fav),
+               color = ~pal(fav[c(1,3,9,5,4,6,13,8,10,7,11,12,2)]),
                opacity = 1,
-               fill = FALSE) %>% 
+               fill = FALSE)%>% 
     addPolylines(lng = ~long[c(1,3,9,5,4,6,13,8,10,7,11,12,2)],
-               lat = ~lat[c(1,3,9,5,4,6,13,8,10,7,11,12,2)])
-  
-  
+               lat = ~lat[c(1,3,9,5,4,6,13,8,10,7,11,12,2)]) %>% 
+    addLegend(pal = pal,
+            values = ~fav,
+            opacity = 0.5,
+            title = "Top 3?",
+            position = "bottomright")
 ```
   
 
@@ -312,13 +316,56 @@ Stations<-read_csv("http://www.macalester.edu/~dshuman1/data/112/DC-Stations.csv
   9. Use the latitude and longitude variables in `Stations` to make a visualization of the total number of departures from each station in the `Trips` data. Use either color or size to show the variation in number of departures. This time, plot the points on top of a map. Use any of the mapping tools you'd like.
   
 ```{r}
+trips_by_station <-
+  Stations %>% 
+  select(lat, long, name) %>% 
+  right_join(Trips, by = c("name" = "sstation")) %>% 
+  group_by(long, lat, name) %>% 
+  summarize(trips = n())
 
+tripColor <- colorNumeric("plasma", domain = trips_by_station$trips)
+             
+    leaflet(data = trips_by_station) %>% 
+    addTiles() %>% 
+    addCircles(lng = ~long,
+               lat = ~lat,
+               color = ~tripColor(trips),
+               opacity = 1,
+               label = ~name) %>% 
+     addLegend(pal = tripColor,
+             values = ~trips,
+             opacity = 0.5,
+             title = "Top 3?",
+             position = "bottomright")
 ```
   
   10. Only 14.4% of the trips in our data are carried out by casual users. Create a plot that shows which area(s) have stations with a much higher percentage of departures by casual users. What patterns do you notice? Also plot this on top of a map. I think it will be more clear what the patterns are.
   
 ```{r}
+  trips_by_station <-
+  Trips %>% 
+  group_by(sstation) %>% 
+  mutate(trips = n()) %>% 
+  group_by(trips, sstation, client) %>% 
+  summarize(casual_count = n()) %>%
+  filter(client == "Casual") %>%
+  summarize(casual_prop = casual_count/trips) %>% 
+  left_join(Stations, by = c("sstation" = "name")) 
 
+casual_propColor <- colorNumeric("plasma", domain = trips_by_station$casual_prop)
+             
+    leaflet(data = trips_by_station) %>% 
+    addTiles() %>% 
+    addCircles(lng = ~long,
+               lat = ~lat,
+               color = ~casual_propColor(casual_prop),
+               opacity = 1,
+               label = ~casual_prop) %>% 
+     addLegend(pal = casual_propColor,
+             values = ~casual_prop,
+             opacity = 0.5,
+             title = "Top 3?",
+             position = "bottomright")
 ```
   
 ### COVID-19 data
