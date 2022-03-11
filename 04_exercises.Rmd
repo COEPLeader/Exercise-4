@@ -1,4 +1,4 @@
-  ---
+---
 title: 'Weekly Exercises #4'
 author: "Seth Buesing"
 output: 
@@ -12,7 +12,7 @@ output:
 
 
 ```{r setup, include=FALSE}
-#knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
+knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
 ```
 
 ```{r libraries}
@@ -96,7 +96,7 @@ These exercises will reiterate what you learned in the "Mapping data with R" tut
 
   1. Add the `Starbucks` locations to a world map. Add an aesthetic to the world map that sets the color of the points according to the ownership type. What, if anything, can you deduce from this visualization?  
 
-```{r}
+```{r, fig.width = 10}
 world_map <- get_stamenmap(
     bbox = c(left = -180, bottom = -57, right = 179, top = 82.1), 
     maptype = "terrain",
@@ -109,13 +109,14 @@ ggmap(world_map) +
              color = `Ownership Type`),
              size = .2)+
 theme_map() +
-theme(legend.background = element_blank())
+theme(legend.background = element_blank()) +
+  labs(title = "Starbucks across the world")
 ```
 There are mostly Licensed and Company Owned locations in North America. In Europe and and Asia, there are a bunch of Joint venture locations, and in western Europe we see the only real Franchised locations on the map
 
   2. Construct a new map of Starbucks locations in the Twin Cities metro area (approximately the 5 county metro area).  
   
-```{r}
+```{r, fig.width = 10}
 stpaul_map <- get_stamenmap(
   bbox = c(left = -94.08, bottom = 44.54, right =-92.26, top = 45.43), 
     maptype = "terrain",
@@ -129,13 +130,14 @@ stpaul_map <- get_stamenmap(
              weight = 1,
              alpha = .8)+
 theme_map() +
-theme(legend.background = element_blank())
+theme(legend.background = element_blank()) +
+    labs(title = "Starbucks in the metro area")
 ```
   
 
   3. In the Twin Cities plot, play with the zoom number. What does it do?  (just describe what it does - don't actually include more than one map).  
 
-```{r}
+```{r, fig.width = 10}
 stpaul_map <- get_stamenmap(
   bbox = c(left = -94.08, bottom = 44.54, right =-92.26, top = 45.43), 
     maptype = "terrain",
@@ -149,14 +151,15 @@ stpaul_map <- get_stamenmap(
              weight = 1,
              alpha = .8)+
 theme_map() +
-theme(legend.background = element_blank())
+theme(legend.background = element_blank()) +
+    labs(title = "Messing with zooms")
 ```
 We see that the detail is increased, but by doing that the scale is all messed up- all the names are too small.
 
 
   4. Try a couple different map types (see `get_stamenmap()` in help and look at `maptype`). Include a map with one of the other map types.  
 
-```{r}
+```{r, fig.width = 10}
   stpaul_map <- get_stamenmap(
   bbox = c(left = -94.08, bottom = 44.54, right =-92.26, top = 45.43), 
     maptype = "watercolor",
@@ -170,12 +173,13 @@ We see that the detail is increased, but by doing that the scale is all messed u
              weight = 1,
              alpha = .8)+
 theme_map() +
-theme(legend.background = element_blank())
+theme(legend.background = element_blank()) +
+    labs(title = "Watercolor map of Starbucks locations")
 ```
 
   5. Add a point to the map that indicates Macalester College and label it appropriately. There are many ways you can do think, but I think it's easiest with the `annotate()` function (see `ggplot2` cheatsheet).
 
-```{r}
+```{r, fig.width = 10}
   stpaul_map <- get_stamenmap(
   bbox = c(left = -94.08, bottom = 44.54, right =-92.26, top = 45.43), 
     maptype = "terrain",
@@ -191,7 +195,7 @@ theme(legend.background = element_blank())
 theme_map() +
 theme(legend.background = element_blank()) +
     annotate(geom = "point", x = -93.17, y = 44.94, color = "green", label = "Macalester") +
-    labs()
+    labs(title = "Starbucks locations with Macalester marked")
 ```
 ##How do I get the label to work?
 
@@ -214,15 +218,15 @@ starbucks_with_2018_pop_est <-
 
   6. **`dplyr` review**: Look through the code above and describe what each line of code does.
 
-1. Assigns variable and reads in spreadsheet
-2. Removes the period from in front of the state names (that was there for some reason).
-3. Selects new state column and population data
-4. Makes the states lowercase
+Line 1: Assigns variable and reads in spreadsheet
+Line 2: Removes the period from in front of the state names (that was there for some reason).
+Line 3: Selects new state column and population data
+LIne 4: Makes the states lowercase
 
-1. Creates new variable
-2. Calls in old starbucks data
-3. Appends the population of each state to the old data
-4. Creates a column of starbucks for every 10000 people
+Line 1: Creates new variable
+Line 2: Calls in old starbucks data
+Line 3: Appends the population of each state to the old data
+Line 4: Creates a column of starbucks for every 10000 people
 
   7. Create a choropleth map that shows the number of Starbucks per 10,000 people on a map of the US. Use a new fill color, add points for all Starbucks in the US (except Hawaii and Alaska), add an informative title for the plot, and include a caption that says who created the plot (you!). Make a conclusion about what you observe.
   
@@ -237,7 +241,9 @@ starbucks_with_2018_pop_est %>%
   scale_fill_viridis_c() +
   expand_limits(x = US_map$long, y = US_map$lat) + 
   theme_map() +
-  theme(legend.background = element_blank())
+  theme(legend.background = element_blank()) +
+  labs(title = "Starbucks per 10,000 people",
+       fill = NULL)
 ```
 
 Other than the notable exception of Washington DC (that little tiny yellow dot), the highest starbucks densities are on the west coast.
@@ -278,10 +284,11 @@ pal <- colorFactor("plasma", domain = fav_places$fav)
     addLegend(pal = pal,
             values = ~fav,
             opacity = 0.5,
-            title = "Top 3?",
+            title = "Top 3 locations in St. Paul",
             position = "bottomright")
 ```
   
+  I had to do the weird indexing thing for the variables to reorder them for the line.
 
   * Create a data set using the `tibble()` function that has 10-15 rows of your favorite places. The columns will be the name of the location, the latitude, the longitude, and a column that indicates if it is in your top 3 favorite locations or not. For an example of how to use `tibble()`, look at the `favorite_stp_by_lisa` I created in the data R code chunk at the beginning.  
 
@@ -335,7 +342,7 @@ tripColor <- colorNumeric("plasma", domain = trips_by_station$trips)
      addLegend(pal = tripColor,
              values = ~trips,
              opacity = 0.5,
-             title = "Top 3?",
+             title = "Trips taken",
              position = "bottomright")
 ```
   
@@ -367,6 +374,7 @@ casual_propColor <- colorNumeric("plasma", domain = trips_by_station$casual_prop
              title = "Top 3?",
              position = "bottomright")
 ```
+I notice that the casual riders seem to be renting bikes near big parks, which is understandable, since they would just ride for fun on a weekend, or a tourist would be renting the bike and going on a relaxing ride just for its own sake. 
   
 ### COVID-19 data
 
@@ -384,9 +392,12 @@ covid19 %>%
              aes(map_id = tolower(state),
                fill = cases)) +
   expand_limits(x = state_map$long, y = state_map$lat) + 
-  theme_map()
+  theme_map() +
+  labs(title = "Total Cases as of March 2022",
+       fill = NULL)
 ```
-We can see that the graph mostly just represents the more populated states, since the 
+
+We can see that the graph mostly just represents the more populated states because we're measuring the sheer number of people that got sick.
   
   12. Now add the population of each state to the dataset and color the states by most recent cumulative cases/10,000 people. See the code for doing this with the Starbucks data. You will need to make some modifications. 
 
@@ -399,18 +410,21 @@ covid19_10000_recent <- covid19 %>%
   left_join(census_pop_est_2018, by = "state")%>% 
   mutate(cases10k = cases/est_pop_2018*10000)
   
-  covid19_10000_recent_recent %>% 
+  covid19_10000_recent %>% 
    ggplot() +
     geom_map(map = state_map,
              aes(map_id = tolower(state),
                fill = cases10k)) +
   expand_limits(x = state_map$long, y = state_map$lat) + 
-  theme_map()
+  theme_map() +
+  labs(title = "Total Cases per 10,000 people",
+       fill = NULL)
+       
 ```
   
   13. **CHALLENGE** Choose 4 dates spread over the time period of the data and create the same map as in exercise 12 for each of the dates. Display the four graphs together using faceting. What do you notice?
   
-```{r}  
+```{r, fig.width = 10, fig.height = 8}  
   state_map <- map_data("state")
 
 covid19_10000 <- covid19  %>%
@@ -426,7 +440,10 @@ filter((date =="2020-04-1"|date =="2020-08-1"|date =="2020-12-1"|date =="2021-04
                fill = cases10k)) +
     facet_wrap(vars(date))+
   expand_limits(x = state_map$long, y = state_map$lat) + 
-  theme_map()
+  theme_map() +
+  theme(legend.background = element_blank()) +
+  labs(title = "Total Coronavirus cases over time",
+       fill = NULL)
 ```
 It seems like trends remained pretty similar for which states were doing comparatively better. We also see a lot of growth once we hit winter.
   
@@ -455,7 +472,10 @@ susColor <- colorFactor("plasma", domain = MplsStops$problem)
     addTiles() %>% 
     addCircles(lng = ~long,
                lat = ~lat,
-               color = ~susColor(problem))
+               color = ~susColor(problem)) %>% 
+    addLegend(pal = susColor,
+              values = ~problem,
+              title = "Stop type") 
     
 ```
   
@@ -486,15 +506,16 @@ mpls_nbhd <- st_read("Minneapolis_Neighborhoods/Minneapolis_Neighborhoods.shp", 
                                  fillOpacity = 0.9,
                                  bringToFront = FALSE)) %>% 
     addLegend(pal = suspiciousColor,
-              values = ~prop_suspicious)
+              values = ~prop_suspicious,
+              title = str_wrap("Proportion of stops for suspicious behavior"),
+              position = "bottomright")
 ```
 Unsurprisingly the urban areas have the highest rate of stops to population (particularly west downtown), due to many factors. I did a little investigating using this code
 ```{r}
  MplsStops %>% 
    filter(neighborhood == "Downtown West") %>% 
    group_by(race) %>% 
-   summarize(count = n()) %>% 
-   view()
+   summarize(count = n())
 ```
  and again, unsurprisingly, the stops of Black people in Downtown West were much frequent than would be expected for the relatively low Black population of the area. About twice as many Black people are stopped there as white people, despite being ~25% of the population in the area.
   
@@ -533,7 +554,8 @@ Unsurprisingly the urban areas have the highest rate of stops to population (par
                   highlight = highlightOptions(weight = 5,
                                                fillOpacity = .9)) %>% 
     addLegend(pal = stopsColor,
-              values = ~rate_stops_black)
+              values = ~rate_stops_black,
+              title = "Rate of stopping Black people")
 ```
 The map itself doesn't end up being super clear because the scale of the outliers masks the true trend, however the scale catches attention in a different way. This value I was calculating should roughly correspond to how much more likely it is for a Black person to get stopped for "suspicious" activity in that neighborhood than a white person, since it's the proportion of black people stopped to the proportion of black people in the area. We see that the scale maxes out at 70, which is insane. This would catch the viewer's eye in the first place, before they realize that it could just be a statistical anomaly. However, (since I couldn't get the scale to vary logarithmically or anything) when mousing over each county they will see that the rates are almost all greater than 1, and nearly always by a statistically significant amount. It's worth noting I have excluded the "Unknown" and NA values for race in the traffic stop data, assuming that they are reflective of the average distribution. While we don't have enough data to support the outlying neighborhoods, the rest of the data reinforces the trend to a more accurate level in other areas. Some neighborhoods were also missing either the rate of black denizens, or the rate of black car stops.
   
@@ -541,5 +563,6 @@ The map itself doesn't end up being super clear because the scale of the outlier
 
   19. Below, provide a link to your GitHub page with this set of Weekly Exercises. Specifically, if the name of the file is 04_exercises.Rmd, provide a link to the 04_exercises.md file, which is the one that will be most readable on GitHub.
 
+[GitHub](https://github.com/COEPLeader/Exercise-4/blob/main/04_exercises.md)
 
 **DID YOU REMEMBER TO UNCOMMENT THE OPTIONS AT THE TOP?**
