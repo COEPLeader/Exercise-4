@@ -374,9 +374,62 @@ The following exercises will use the COVID-19 data from the NYT.
 
   11. Create a map that colors the states by the most recent cumulative number of COVID-19 cases (remember, these data report cumulative numbers so you don't need to compute that). Describe what you see. What is the problem with this map?
   
+```{r}
+state_map <- map_data("state")
+
+covid19 %>%
+  slice_max(date, n = 1) %>% 
+   ggplot() +
+    geom_map(map = state_map,
+             aes(map_id = tolower(state),
+               fill = cases)) +
+  expand_limits(x = state_map$long, y = state_map$lat) + 
+  theme_map()
+```
+We can see that the graph mostly just represents the more populated states, since the 
+  
   12. Now add the population of each state to the dataset and color the states by most recent cumulative cases/10,000 people. See the code for doing this with the Starbucks data. You will need to make some modifications. 
+
+```{r}  
+  state_map <- map_data("state")
+
+covid19_10000_recent <- covid19 %>%
+  slice_max(date, n = 1) %>% 
+  mutate(state = tolower(state)) %>% 
+  left_join(census_pop_est_2018, by = "state")%>% 
+  mutate(cases10k = cases/est_pop_2018*10000)
+  
+  covid19_10000_recent_recent %>% 
+   ggplot() +
+    geom_map(map = state_map,
+             aes(map_id = tolower(state),
+               fill = cases10k)) +
+  expand_limits(x = state_map$long, y = state_map$lat) + 
+  theme_map()
+```
   
   13. **CHALLENGE** Choose 4 dates spread over the time period of the data and create the same map as in exercise 12 for each of the dates. Display the four graphs together using faceting. What do you notice?
+  
+```{r}  
+  state_map <- map_data("state")
+
+covid19_10000 <- covid19  %>%
+filter((date =="2020-04-1"|date =="2020-08-1"|date =="2020-12-1"|date =="2021-04-1")) %>% 
+  mutate(state = tolower(state)) %>% 
+  left_join(census_pop_est_2018, by = "state")%>% 
+  mutate(cases10k = cases/est_pop_2018*10000)
+  
+  covid19_10000 %>%
+   ggplot() +
+    geom_map(map = state_map,
+             aes(map_id = tolower(state),
+               fill = cases10k)) +
+    facet_wrap(vars(date))+
+  expand_limits(x = state_map$long, y = state_map$lat) + 
+  theme_map()
+```
+It seems like trends remained pretty similar for which states were doing comparatively better. We also see a lot of growth once we hit winter.
+  
   
 ## Minneapolis police stops
 
@@ -384,18 +437,105 @@ These exercises use the datasets `MplsStops` and `MplsDemo` from the `carData` l
 
   14. Use the `MplsStops` dataset to find out how many stops there were for each neighborhood and the proportion of stops that were for a suspicious vehicle or person. Sort the results from most to least number of stops. Save this as a dataset called `mpls_suspicious` and display the table.  
   
+```{r}
+  mpls_suspicious <- MplsStops %>% 
+    filter(problem == "suspicious") %>% 
+    group_by(neighborhood) %>% 
+    summarize(stops = n()) %>% 
+    arrange(stops)
+  mpls_suspicious
+```
+  
   15. Use a `leaflet` map and the `MplsStops` dataset to display each of the stops on a map as a small point. Color the points differently depending on whether they were for suspicious vehicle/person or a traffic stop (the `problem` variable). HINTS: use `addCircleMarkers`, set `stroke = FAlSE`, use `colorFactor()` to create a palette.  
+  
+```{r}
+susColor <- colorFactor("plasma", domain = MplsStops$problem)
+
+  leaflet(data = MplsStops) %>% 
+    addTiles() %>% 
+    addCircles(lng = ~long,
+               lat = ~lat,
+               color = ~susColor(problem))
+    
+```
   
   16. Save the folder from moodle called Minneapolis_Neighborhoods into your project/repository folder for this assignment. Make sure the folder is called Minneapolis_Neighborhoods. Use the code below to read in the data and make sure to **delete the `eval=FALSE`**. Although it looks like it only links to the .sph file, you need the entire folder of files to create the `mpls_nbhd` data set. These data contain information about the geometries of the Minneapolis neighborhoods. Using the `mpls_nbhd` dataset as the base file, join the `mpls_suspicious` and `MplsDemo` datasets to it by neighborhood (careful, they are named different things in the different files). Call this new dataset `mpls_all`.
 
-```{r, eval=FALSE}
+```{r}
 mpls_nbhd <- st_read("Minneapolis_Neighborhoods/Minneapolis_Neighborhoods.shp", quiet = TRUE)
+```
+
+```{r}
+  mpls_all <- mpls_nbhd %>% 
+    left_join(MplsDemo, by = c("BDNAME" = "neighborhood")) %>% 
+    left_join(mpls_suspicious, by = c("BDNAME" = "neighborhood")) %>% 
+    mutate(prop_suspicious = stops/population)
 ```
 
   17. Use `leaflet` to create a map from the `mpls_all` data  that colors the neighborhoods by `prop_suspicious`. Display the neighborhood name as you scroll over it. Describe what you observe in the map.
   
+```{r}
+  suspiciousColor <- colorNumeric("plasma", domain = mpls_all$prop_suspicious)
+
+  leaflet(data = mpls_all) %>% 
+    addTiles() %>% 
+    addPolygons(fillColor = ~suspiciousColor(prop_suspicious),
+                fillOpacity = .6,
+                label = ~BDNAME,
+                highlight = highlightOptions(weight = 5,
+                                 fillOpacity = 0.9,
+                                 bringToFront = FALSE)) %>% 
+    addLegend(pal = suspiciousColor,
+              values = ~prop_suspicious)
+```
+Unsurprisingly the urban areas have the highest rate of stops to population (particularly west downtown), due to many factors. I did a little investigating using this code
+```{r}
+ MplsStops %>% 
+   filter(neighborhood == "Downtown West") %>% 
+   group_by(race) %>% 
+   summarize(count = n()) %>% 
+   view()
+```
+ and again, unsurprisingly, the stops of Black people in Downtown West were much frequent than would be expected for the relatively low Black population of the area. About twice as many Black people are stopped there as white people, despite being ~25% of the population in the area.
+  
   18. Use `leaflet` to create a map of your own choosing. Come up with a question you want to try to answer and use the map to help answer that question. Describe what your map shows. 
   
+  What is the proportion of Black people stopped to their proportion of the population in that area?
+
+```{r}
+  mpls_sus_race <- MplsStops %>% 
+    filter(problem == "suspicious"& race == "Black") %>% 
+    group_by(race, neighborhood) %>% 
+    summarize(stops_black = n())
+
+  mpls_sus_all <- MplsStops %>% 
+    filter(problem == "suspicious"& race != "Unknown" & is.na(race)==FALSE) %>% 
+    group_by(neighborhood) %>% 
+    summarize(stops = n()) %>% 
+    arrange(stops)
+
+  mpls_stop_racial <- mpls_nbhd %>% 
+    left_join(MplsDemo, by = c("BDNAME" = "neighborhood")) %>% 
+    left_join(mpls_sus_race, by = c("BDNAME" = "neighborhood")) %>% 
+    left_join(mpls_sus_all, by = c("BDNAME" = "neighborhood")) %>% 
+    select(c(BDNAME, stops_black, black , stops)) %>% 
+    group_by(BDNAME) %>% 
+    mutate(rate_stops_black = (stops_black/stops)/black)
+  
+  stopsColor <- colorNumeric("plasma", domain = mpls_stop_racial$rate_stop_black)
+
+  leaflet(data = mpls_stop_racial) %>% 
+    addTiles() %>% 
+      addPolygons(fillColor = ~stopsColor(rate_stops_black),
+                  label = ~rate_stops_black,
+                  popup = TRUE,
+                  fillOpacity = .8,
+                  highlight = highlightOptions(weight = 5,
+                                               fillOpacity = .9)) %>% 
+    addLegend(pal = stopsColor,
+              values = ~rate_stops_black)
+```
+The map itself doesn't end up being super clear because the scale of the outliers masks the true trend, however the scale catches attention in a different way. This value I was calculating should roughly correspond to how much more likely it is for a Black person to get stopped for "suspicious" activity in that neighborhood than a white person, since it's the proportion of black people stopped to the proportion of black people in the area. We see that the scale maxes out at 70, which is insane. This would catch the viewer's eye in the first place, before they realize that it could just be a statistical anomaly. However, (since I couldn't get the scale to vary logarithmically or anything) when mousing over each county they will see that the rates are almost all greater than 1, and nearly always by a statistically significant amount. It's worth noting I have excluded the "Unknown" and NA values for race in the traffic stop data, assuming that they are reflective of the average distribution. While we don't have enough data to support the outlying neighborhoods, the rest of the data reinforces the trend to a more accurate level in other areas. Some neighborhoods were also missing either the rate of black denizens, or the rate of black car stops.
   
 ## GitHub link
 
